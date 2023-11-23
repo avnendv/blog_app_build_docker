@@ -1,0 +1,68 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGODB_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
+    ports:
+      - 27017:27017
+    volumes:
+      - db:/data/db
+    networks:
+      - backend
+
+  blog_api:
+    depends_on:
+      - mongodb
+    container_name: blog_api
+    build: ../blog_api
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $NODE_DOCKER_PORT:$NODE_DOCKER_PORT
+    environment:
+      - MONGO_HOST=mongodb
+      - MONGO_USER=$MONGODB_USER
+      - MONGODB_PASSWORD=$MONGODB_PASSWORD
+      - MONGO_DB_NAME=$MONGODB_DATABASE
+      - MONGODB_PORT=$MONGODB_DOCKER_PORT
+      - PORT=$NODE_DOCKER_PORT
+    links:
+      - mongodb
+    networks:
+      - backend
+      - frontend
+      - frontend-manage
+
+  blog_client:
+    depends_on:
+      - blog_api
+    container_name: blog_client
+    build:
+      context: ../blog_client
+    ports:
+      - 4001:4001
+    networks:
+      - frontend
+
+  blog_manage:
+    depends_on:
+      - blog_api
+    container_name: blog_manage
+    build:
+      context: ../blog_manage
+    ports:
+      - 4002:4002
+    networks:
+      - frontend-manage
+
+volumes:
+  db:
+
+networks:
+  backend:
+  frontend:
+  frontend-manage:
